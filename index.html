@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة قتل البعوض المحسنة</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
+
+        body, html {
+            font-family: 'Tajawal', sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+        #gameArea {
+            width: 100vw;
+            height: 100vh;
+            background-image: url('https://te.legra.ph/file/c796bdb5f8af16057e48f.jpg');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            overflow: hidden;
+            cursor: none;
+        }
+        .mosquito {
+            position: absolute;
+            background-size: contain;
+            background-repeat: no-repeat;
+            transition: transform 0.1s;
+        }
+        .mosquito-normal {
+            width: 40px;
+            height: 40px;
+            background-image: url('https://te.legra.ph/file/9ad4842ca5551afa72b98.png');
+        }
+        .mosquito-special1 {
+            width: 50px;
+            height: 50px;
+            background-image: url('https://te.legra.ph/file/f6a786bcd78874940731a.png');
+        }
+        .mosquito-special2 {
+            width: 60px;
+            height: 60px;
+            background-image: url('https://te.legra.ph/file/c09205deab6a580e3bc63.png');
+        }
+        #slipper {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            pointer-events: none;
+            transform: translate(-50%, -50%) rotate(45deg);
+            transition: transform 0.1s;
+            display: none;
+        }
+        .top-bar {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            justify-content: space-between;
+            width: 90%;
+            max-width: 600px;
+            z-index: 1000;
+        }
+        .info-box {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            flex: 1;
+            text-align: center;
+            margin: 0 5px;
+        }
+        .slap-mark {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        .flash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: white;
+            opacity: 0;
+            pointer-events: none;
+        }
+        @keyframes slap {
+            0% { transform: translate(-50%, -50%) rotate(45deg) scale(1); }
+            25% { transform: translate(-50%, -50%) rotate(-10deg) scale(1.2); }
+            50% { transform: translate(-50%, -50%) rotate(0deg) scale(1.4); }
+            75% { transform: translate(-50%, -50%) rotate(10deg) scale(1.2); }
+            100% { transform: translate(-50%, -50%) rotate(45deg) scale(1); }
+        }
+        .slap-animation {
+            animation: slap 0.3s ease-out;
+        }
+        @keyframes scorePopup {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.5); }
+            100% { transform: scale(1); }
+        }
+        .score-popup {
+            animation: scorePopup 0.3s ease-out;
+        }
+        .slipper-select-container {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+        }
+        .slipper-select {
+            display: flex;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 15px;
+            margin-top: 10px;
+        }
+        .slipper-option {
+            width: 60px;
+            height: 60px;
+            margin: 0 10px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+        .slipper-option:hover, .slipper-option.selected {
+            border-color: #feca57;
+            transform: scale(1.1);
+        }
+        .select-text {
+            font-size: 14px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 5px 10px;
+            border-radius: 10px;
+            margin-bottom: 5px;
+        }
+        .refresh-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            z-index: 1001;
+        }
+        .refresh-button:hover {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body>
+    <div id="gameArea">
+        <div class="flash"></div>
+        <div id="slipper"></div>
+    </div>
+    <div class="top-bar">
+        <div class="info-box">النقاط: <span id="score">0</span></div>
+        <div class="info-box">الوقت: <span id="timer">60</span></div>
+        <div class="info-box">أعلى نتيجة: <span id="highScore">0</span></div>
+    </div>
+    <div class="refresh-button" onclick="location.reload()">
+        <i class="fas fa-sync-alt"></i>
+    </div>
+    <div class="slipper-select-container">
+        <div class="select-text">اختر النعال لبدء اللعبة</div>
+        <div class="slipper-select">
+            <img src="https://te.legra.ph/file/533ce7942c03ff1059ad9.png" class="slipper-option selected" data-slipper="original" alt="Original Slipper">
+            <img src="https://te.legra.ph/file/50e46104d65b12ea197e8.png" class="slipper-option" data-slipper="1" alt="Slipper 1">
+            <img src="https://te.legra.ph/file/96f38957dd15a0eac788a.png" class="slipper-option" data-slipper="2" alt="Slipper 2">
+            <img src="https://te.legra.ph/file/dc788cae25641929dbccc.png" class="slipper-option" data-slipper="3" alt="Slipper 3">
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const gameArea = document.getElementById('gameArea');
+        const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('highScore');
+        const timerElement = document.getElementById('timer');
+        const flash = document.querySelector('.flash');
+        const slipper = document.getElementById('slipper');
+        const topBar = document.querySelector('.top-bar');
+        const slipperOptions = document.querySelectorAll('.slipper-option');
+        const slipperSelectContainer = document.querySelector('.slipper-select-container');
+        const selectText = document.querySelector('.select-text');
+
+        let score = 0;
+        let highScore = localStorage.getItem('highScore') || 0;
+        let timeLeft = 60;
+        let gameInterval;
+        let timerInterval;
+        let mosquitoSpeed = 2000;
+        let selectedSlipper = 'https://te.legra.ph/file/533ce7942c03ff1059ad9.png';
+
+        highScoreElement.textContent = highScore;
+
+        const slapSound = new Audio('drb.mp3');
+        const bgMusic = new Audio('sund.mp3');
+
+        bgMusic.loop = true;
+
+        slipperOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                slipperOptions.forEach(opt => opt.classList.remove('selected'));
+                option.classList.add('selected');
+                selectedSlipper = option.src;
+                slipper.style.backgroundImage = `url(${selectedSlipper})`;
+                slipperSelectContainer.style.display = 'none';
+                startGame();
+            });
+        });
+
+        function createMosquito() {
+            const mosquito = document.createElement('div');
+            mosquito.classList.add('mosquito');
+
+            const mosquitoType = Math.random();
+            let health = 1;
+            let points = 1;
+
+            if (mosquitoType < 0.5) {
+                mosquito.classList.add('mosquito-normal');
+            } else if (mosquitoType < 0.8) {
+                mosquito.classList.add('mosquito-special1');
+                health = 2;
+                points = 2;
+            } else {
+                mosquito.classList.add('mosquito-special2');
+                health = 2;
+                points = 3;
+            }
+
+            const maxWidth = gameArea.clientWidth - 80;
+            const maxHeight = gameArea.clientHeight - 80;
+            const minOffset = 40;
+            const topBarHeight = topBar.offsetHeight + 20;
+
+            const left = Math.random() * (maxWidth - minOffset * 2) + minOffset;
+            const top = Math.random() * (maxHeight - minOffset * 2 - topBarHeight) + minOffset + topBarHeight;
+
+            mosquito.style.left = `${left}px`;
+            mosquito.style.top = `${top}px`;
+            gameArea.appendChild(mosquito);
+
+            let startTime = Date.now();
+
+            function moveMosquito() {
+                const elapsedTime = Date.now() - startTime;
+                const progress = elapsedTime / mosquitoSpeed;
+
+                if (progress < 1) {
+                    const newLeft = parseFloat(mosquito.style.left) + (Math.random() * 4 - 2);
+                    const newTop = parseFloat(mosquito.style.top) + (Math.random() * 4 - 2);
+
+                    mosquito.style.left = `${Math.max(minOffset, Math.min(newLeft, maxWidth))}px`;
+                    mosquito.style.top = `${Math.max(topBarHeight, Math.min(newTop, maxHeight))}px`;
+
+                    requestAnimationFrame(moveMosquito);
+                } else {
+                    mosquito.remove();
+                }
+            }
+
+            moveMosquito();
+
+            mosquito.addEventListener('click', () => {
+                health--;
+                if (health <= 0) {
+                    score += points;
+                    scoreElement.textContent = score;
+                    scoreElement.classList.add('score-popup');
+                    setTimeout(() => scoreElement.classList.remove('score-popup'), 300);
+                    createSlapMark(mosquito.offsetLeft, mosquito.offsetTop);
+                    mosquito.remove();
+                }
+                slapSound.play();
+                flashEffect();
+                slapEffect(mosquito.offsetLeft, mosquito.offsetTop);
+                mosquitoSpeed = Math.max(500, mosquitoSpeed - 50);
+            });
+        }
+
+        function createSlapMark(x, y) {
+            const slapMark = document.createElement('div');
+            slapMark.classList.add('slap-mark');
+            slapMark.style.backgroundImage = `url(${selectedSlipper})`;
+            slapMark.style.left = `${x}px`;
+            slapMark.style.top = `${y}px`;
+            gameArea.appendChild(slapMark);
+
+            setTimeout(() => {
+                slapMark.style.opacity = '1';
+            }, 50);
+
+            setTimeout(() => {
+                slapMark.remove();
+            }, 2000);
+        }
+
+        function flashEffect() {
+            flash.style.opacity = '0.5';
+            setTimeout(() => {
+                flash.style.opacity = '0';
+            }, 50);
+        }
+
+        function slapEffect(x, y) {
+            slipper.style.display = 'block';
+            slipper.style.left = `${x}px`;
+            slipper.style.top = `${y}px`;
+            slipper.classList.add('slap-animation');
+
+            setTimeout(() => {
+                slipper.classList.remove('slap-animation');
+                slipper.style.display = 'none';
+            }, 300);
+        }
+
+        function startGame() {
+            score = 0;
+            timeLeft = 60;
+            mosquitoSpeed = 2000;
+            scoreElement.textContent = score;
+            timerElement.textContent = timeLeft;
+            bgMusic.play();
+
+            gameInterval = setInterval(createMosquito, 1000);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerElement.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function endGame() {
+            clearInterval(gameInterval);
+            clearInterval(timerInterval);
+            slipperSelectContainer.style.display = 'block';
+            selectText.textContent = 'اختر النعال للعب مرة أخرى';
+            bgMusic.pause();
+            bgMusic.currentTime = 0;
+
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('highScore', highScore);
+                highScoreElement.textContent = highScore;
+                alert(`تهانينا! لقد حققت رقمًا قياسيًا جديدًا: ${score} نقطة.`);
+            } else {
+                alert(`انتهت اللعبة! لقد سجلت ${score} نقطة.`);
+            }
+        }
+
+        gameArea.addEventListener('click', (e) => {
+            if (e.target === gameArea) {
+                slapSound.play();
+                flashEffect();
+                slapEffect(e.offsetX, e.offsetY);
+                createSlapMark(e.offsetX, e.offsetY);
+            }
+        });
+
+        gameArea.addEventListener('mousemove', (e) => {
+            slipper.style.left = `${e.offsetX}px`;
+            slipper.style.top = `${e.offsetY}px`;
+        });
+
+        gameArea.addEventListener('mouseenter', () => {
+            slipper.style.display = 'block';
+        });
+
+        gameArea.addEventListener('mouseleave', () => {
+            slipper.style.display = 'none';
+        });
+
+        // Set initial slipper image
+        slipper.style.backgroundImage = `url(${selectedSlipper})`;
+    </script>
+</body>
+</html>
